@@ -194,6 +194,16 @@ function buildVolumeMounts(
     mounts.push(...validatedMounts);
   }
 
+  // Mount SSH keys for git operations (read-only for security)
+  const sshDir = path.join(homeDir, '.ssh');
+  if (fs.existsSync(sshDir)) {
+    mounts.push({
+      hostPath: sshDir,
+      containerPath: '/home/node/.ssh',
+      readonly: true,
+    });
+  }
+
   return mounts;
 }
 
@@ -224,6 +234,13 @@ function buildContainerArgs(mounts: VolumeMount[], containerName: string): strin
     } else {
       args.push('-v', `${mount.hostPath}:${mount.containerPath}`);
     }
+  }
+
+  // Forward SSH agent socket if available (for git push via SSH)
+  const sshAuthSock = process.env.SSH_AUTH_SOCK;
+  if (sshAuthSock && fs.existsSync(sshAuthSock)) {
+    args.push('-v', `${sshAuthSock}:/ssh-agent`);
+    args.push('-e', 'SSH_AUTH_SOCK=/ssh-agent');
   }
 
   args.push(CONTAINER_IMAGE);
