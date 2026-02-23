@@ -164,6 +164,26 @@ function buildVolumeMounts(
     readonly: true,
   });
 
+  // Mount Google Calendar credentials/tokens if they exist
+  const gcalDir = path.join(DATA_DIR, 'google-calendar');
+  if (fs.existsSync(gcalDir)) {
+    mounts.push({
+      hostPath: gcalDir,
+      containerPath: '/workspace/google-calendar',
+      readonly: false,
+    });
+  }
+
+  // Mount Gmail credentials/tokens if they exist
+  const gmailDir = path.join(DATA_DIR, 'gmail');
+  if (fs.existsSync(gmailDir)) {
+    mounts.push({
+      hostPath: gmailDir,
+      containerPath: '/workspace/gmail',
+      readonly: false,
+    });
+  }
+
   // Additional mounts validated against external allowlist (tamper-proof from containers)
   if (group.containerConfig?.additionalMounts) {
     const validatedMounts = validateAdditionalMounts(
@@ -182,7 +202,7 @@ function buildVolumeMounts(
  * Secrets are never written to disk or mounted as files.
  */
 function readSecrets(): Record<string, string> {
-  return readEnvFile(['CLAUDE_CODE_OAUTH_TOKEN', 'ANTHROPIC_API_KEY']);
+  return readEnvFile(['CLAUDE_CODE_OAUTH_TOKEN', 'ANTHROPIC_API_KEY', 'NOTION_TOKEN', 'GITHUB_PERSONAL_ACCESS_TOKEN', 'HEROKU_API_KEY', 'TODOIST_API_TOKEN']);
 }
 
 function buildContainerArgs(mounts: VolumeMount[], containerName: string): string[] {

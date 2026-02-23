@@ -431,7 +431,13 @@ async function runQuery(
         'TeamCreate', 'TeamDelete', 'SendMessage',
         'TodoWrite', 'ToolSearch', 'Skill',
         'NotebookEdit',
-        'mcp__nanoclaw__*'
+        'mcp__nanoclaw__*',
+        ...(sdkEnv.NOTION_TOKEN ? ['mcp__notion__*'] : []),
+        ...(fs.existsSync('/workspace/google-calendar/gcp-oauth.keys.json') ? ['mcp__google_calendar__*'] : []),
+        ...(fs.existsSync('/workspace/gmail/credentials.json') ? ['mcp__gmail__*'] : []),
+        ...(sdkEnv.GITHUB_PERSONAL_ACCESS_TOKEN ? ['mcp__github__*'] : []),
+        ...(sdkEnv.HEROKU_API_KEY ? ['mcp__heroku__*'] : []),
+        ...(sdkEnv.TODOIST_API_TOKEN ? ['mcp__todoist__*'] : []),
       ],
       env: sdkEnv,
       permissionMode: 'bypassPermissions',
@@ -447,6 +453,65 @@ async function runQuery(
             NANOCLAW_IS_MAIN: containerInput.isMain ? '1' : '0',
           },
         },
+        ...(sdkEnv.NOTION_TOKEN ? {
+          notion: {
+            command: 'npx',
+            args: ['@notionhq/notion-mcp-server'],
+            env: {
+              OPENAPI_MCP_HEADERS: JSON.stringify({
+                Authorization: `Bearer ${sdkEnv.NOTION_TOKEN}`,
+                'Notion-Version': '2022-06-28',
+              }),
+            },
+          },
+        } : {}),
+        ...(fs.existsSync('/workspace/google-calendar/gcp-oauth.keys.json') ? {
+          'google-calendar': {
+            command: 'npx',
+            args: ['@cocal/google-calendar-mcp'],
+            env: {
+              GOOGLE_OAUTH_CREDENTIALS: '/workspace/google-calendar/gcp-oauth.keys.json',
+              GOOGLE_CALENDAR_MCP_TOKEN_PATH: '/workspace/google-calendar/tokens.json',
+            },
+          },
+        } : {}),
+        ...(fs.existsSync('/workspace/gmail/credentials.json') ? {
+          gmail: {
+            command: 'npx',
+            args: ['@gongrzhe/server-gmail-autoauth-mcp'],
+            env: {
+              GMAIL_OAUTH_PATH: '/workspace/gmail/gcp-oauth.keys.json',
+              GMAIL_CREDENTIALS_PATH: '/workspace/gmail/credentials.json',
+            },
+          },
+        } : {}),
+        ...(sdkEnv.GITHUB_PERSONAL_ACCESS_TOKEN ? {
+          github: {
+            command: 'npx',
+            args: ['@modelcontextprotocol/server-github'],
+            env: {
+              GITHUB_PERSONAL_ACCESS_TOKEN: sdkEnv.GITHUB_PERSONAL_ACCESS_TOKEN,
+            },
+          },
+        } : {}),
+        ...(sdkEnv.HEROKU_API_KEY ? {
+          heroku: {
+            command: 'npx',
+            args: ['@heroku/mcp-server'],
+            env: {
+              HEROKU_API_KEY: sdkEnv.HEROKU_API_KEY,
+            },
+          },
+        } : {}),
+        ...(sdkEnv.TODOIST_API_TOKEN ? {
+          todoist: {
+            command: 'npx',
+            args: ['@abhiz123/todoist-mcp-server'],
+            env: {
+              TODOIST_API_TOKEN: sdkEnv.TODOIST_API_TOKEN,
+            },
+          },
+        } : {}),
       },
       hooks: {
         PreCompact: [{ hooks: [createPreCompactHook()] }],
