@@ -50,16 +50,16 @@ RUN npm run build
 # Create workspace directories
 RUN mkdir -p /workspace/group /workspace/global /workspace/extra /workspace/ipc/messages /workspace/ipc/tasks /workspace/ipc/input
 
-# Create entrypoint script
+# Create entrypoint script that handles dynamic UID
 # Secrets are passed via stdin JSON — temp file is deleted immediately after Node reads it
 # Follow-up messages arrive via IPC files in /workspace/ipc/input/
-RUN printf '#!/bin/bash\nset -e\ncd /app && npx tsc --outDir /tmp/dist 2>&1 >&2\nln -s /app/node_modules /tmp/dist/node_modules\nchmod -R a-w /tmp/dist\ncat > /tmp/input.json\nnode /tmp/dist/index.js < /tmp/input.json\n' > /app/entrypoint.sh && chmod +x /app/entrypoint.sh
+RUN printf '#!/bin/bash\nset -e\n# Create user entry if running as non-standard UID (for SSH/git)\nCURRENT_UID=$(id -u)\nif [ "$CURRENT_UID" != "1000" ] && ! getent passwd "$CURRENT_UID" >/dev/null; then\n  echo "hostuser:x:$CURRENT_UID:$(id -g)::/home/node:/bin/bash" >> /etc/passwd\nfi\ncd /app && npx tsc --outDir /tmp/dist 2>&1 >&2\nln -s /app/node_modules /tmp/dist/node_modules\nchmod -R a-w /tmp/dist\ncat > /tmp/input.json\nnode /tmp/dist/index.js < /tmp/input.json\n' > /app/entrypoint.sh && chmod +x /app/entrypoint.sh
 
 # Set ownership to node user (non-root) for writable directories
 RUN chown -R node:node /workspace && chmod 777 /home/node
 
-# Switch to non-root user (required for --dangerously-skip-permissions)
-USER node
+# Make /etc/passwd writable so entrypoint can add user dynamically
+RUN chmod 666 /etc/passwd
 
 # Set working directory to group workspace
 WORKDIR /workspace/group
