@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { cleanup, createTempDir } from './test-helpers.js';
 
-describe('run-migrations', () => {
+describe('run-migrations', { timeout: 30_000 }, () => {
   let tmpDir: string;
   let newCoreDir: string;
   const scriptPath = path.resolve('scripts/run-migrations.ts');

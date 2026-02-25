@@ -4,6 +4,7 @@
  */
 import { ChildProcess, exec, spawn } from 'child_process';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 
 import {
@@ -196,7 +197,7 @@ function buildVolumeMounts(
   }
 
   // Mount SSH keys for git operations (read-only for security)
-  const sshDir = path.join(homeDir, '.ssh');
+  const sshDir = path.join(os.homedir(), '.ssh');
   if (fs.existsSync(sshDir)) {
     mounts.push({
       hostPath: sshDir,
